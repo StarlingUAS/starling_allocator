@@ -1,0 +1,12 @@
+
+# List of trajectories to be allocated to various drones
+trajectory_msgs/JointTrajectory[] trajectories
+
+# Manual Allocation vehicle names in order
+string[] manual_allocation_targets
+
+---
+
+bool success
+string message
+Allocation[] allocation

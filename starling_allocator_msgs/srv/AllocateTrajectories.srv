@@ -5,6 +5,8 @@ trajectory_msgs/JointTrajectory[] trajectories
 # Manual Allocation vehicle names in order
 string[] manual_allocation_targets
 
+# Allocation method (e.g. manual or nearest or random)
+string method
 ---
 
 bool success

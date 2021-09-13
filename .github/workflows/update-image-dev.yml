@@ -41,7 +41,7 @@ jobs:
         uses: docker/bake-action@master
         with:
           files: |
-            ./docker-bake.hcl
+            ./buildtoolsdocker-bake.hcl
           targets: |
             starling-allocator
           push: true

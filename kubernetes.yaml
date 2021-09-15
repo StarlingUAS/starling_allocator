@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: starling-allocator
+spec:
+  selector:
+    matchLabels:
+      app: starling-allocator
+  template:
+    metadata:
+      labels:
+        app: starling-allocator
+    spec:
+      hostNetwork: true
+      shareProcessNamespace: true
+      containers:
+      - name: starling-allocator
+        image: uobflightlabstarling/starling-allocator:latest
+        imagePullPolicy: Always

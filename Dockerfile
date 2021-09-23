@@ -5,6 +5,7 @@ FROM ${REGISTRY}uobflightlabstarling/starling-controller-base:${VERSION}
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         git \
+        python-numpy \
     && rm -rf /var/lib/apt/lists/*
 
 RUN cd /ros_ws/src && git clone https://github.com/mhl787156/starling_simple_offboard.git

@@ -2,11 +2,23 @@
 # List of trajectories to be allocated to various drones
 trajectory_msgs/JointTrajectory[] trajectories
 
+# List of trajectory types (i.e. position or attitude)
+string[] trajectory_types
+
 # Manual Allocation vehicle names in order
 string[] manual_allocation_targets
 
 # Allocation method (e.g. manual or nearest or random)
 string method
+
+# Interpolation method (e.g. linear or cubic or other, defaults to cubic)
+string interpolation_method
+
+# Automatically arm and takeoff (default true)
+bool auto_arm
+
+# Automatically takeoff (default true)
+bool auto_takeoff
 ---
 
 bool success

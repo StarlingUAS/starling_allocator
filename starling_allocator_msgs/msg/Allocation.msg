@@ -1,2 +1,3 @@
 string vehicle
+uint32 trajectory_index
 trajectory_msgs/JointTrajectory trajectory

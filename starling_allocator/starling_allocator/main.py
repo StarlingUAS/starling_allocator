@@ -1,11 +1,13 @@
 import random
 import time
-import numpy
+import numpy as np
+from functools import partial
 
 import rclpy
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.callback_groups import ReentrantCallbackGroup
+from rclpy.qos import qos_profile_system_default
 
 # from starling_allocator_msgs.msg import Allocation
 from starling_allocator_msgs.srv import AllocateTrajectories
@@ -27,6 +29,7 @@ class Allocator(Node):
             'random': self.create_namespace_trajectory_mapping_random,
             'manual': self.create_namespace_trajectory_mapping_manual,
         }
+        self.current_locations = {}
         self.callback_group = ReentrantCallbackGroup()
         self.get_logger().info("Initialised")
 
@@ -114,34 +117,43 @@ class Allocator(Node):
 
         return dict(zip(req.manual_allocation_targets, traj_tuple))
 
+    def __assign_current_loc(self, cn, msg):
+        # self.get_logger().info(f'Assigning {cn} to {msg}')
+        self.current_locations[cn] = [msg.pose.position.x, msg.pose.position.y, msg.pose.position.z]
+
     def create_namespace_trajectory_mapping_nearest(self, req, traj_tuple):
         current_namespaces = self.__get_current_vehicle_namespaces()
-        current_locations = {cn: None for cn in current_namespaces}
-        def __assign_current_loc(cn, x):
-            current_locations[cn] = x
+        self.current_locations = {cn: None for cn in current_namespaces}
+
         current_namespace_pose_subs = [
             self.create_subscription(PoseStamped, f'{cn}/mavros/local_position/pose',
-                                     callback=lambda x: __assign_current_loc(cn, x), callback_group=self.callback_group)
-            for cn in current_namespaces
-        ]
+                                     callback=partial(self.__assign_current_loc, cn),
+                                     qos_profile=10, callback_group=self.callback_group)
+            for cn in current_namespaces]
 
-        while any([cv == None for cv in current_locations.values()]):
-            self.get_logger().info(f"Waiting for pose information: {current_locations}")
-            time.sleep(0.2)
+        rate = self.create_rate(10)
+        while any([cv == None for cv in self.current_locations.values()]):
+            self.get_logger().info(f"Waiting for pose information: {self.current_locations}")
+            rate.sleep()
+        self.get_logger().info(f"Got local positions: {self.current_locations}")
+
+        # Close the subscribers once current locations have been accessed
+        for sub in current_namespace_pose_subs:
+            sub.destroy()
 
         traj_locations = {k: t.points[0].positions[:3] for (k, t, _) in traj_tuple}
 
         assigned = {}
-        for cn, cl in zip(current_namespaces, current_locations):
-            loc = [cl.pose.position.x, cl.pose.position.y, cl.pose.position.z]
+        for cn, cl in self.current_locations.items():
             cassin = None
             min_dist = 100000000000
             for k, position in [(k, p) for (k, p) in traj_locations.items() if k not in assigned.keys()]:
-                dist = np.linalg.norm(cl - positions)
+                dist = np.linalg.norm(np.array(cl) - np.array(position))
                 if dist < min_dist:
                     min_dist = dist
                     cassin = k
             assigned[cn] = traj_tuple[cassin]
+
         return assigned
 
     def create_namespace_trajectory_mapping_random(self, req, traj_tuple):
@@ -188,12 +200,14 @@ class Allocator(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    alloc = Allocator()
-    executor = MultiThreadedExecutor()
-    executor.add_node(alloc)
     try:
-        executor.spin()
+        alloc = Allocator()
+        executor = MultiThreadedExecutor()
+        executor.add_node(alloc)
+        try:
+            executor.spin()
+        finally:
+            executor.shutdown()
+            alloc.destroy_node()
     finally:
-        executor.shutdown()
-        alloc.destroy_node()
         rclpy.shutdown()

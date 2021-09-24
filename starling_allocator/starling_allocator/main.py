@@ -92,7 +92,7 @@ class Allocator(Node):
         res.success = True
         res.message = "Successfully allocated trajectories to available vehicles"
         res.allocation = []
-        for name, (traj_idx, traj, _) in namespace_trajectory_mapping_dict.items():
+        for name, (traj_idx, traj, _) in ns_traj_map.items():
             all = Allocation()
             all.vehicle = name
             all.trajectory_index = traj_idx
@@ -105,7 +105,7 @@ class Allocator(Node):
         if not req.manual_allocation_targets:
             raise RuntimeError('Manual allocation method specified but no manual_allocation_targets given')
 
-        if len(req.manual_allocation_targets) != len(trajectories):
+        if len(req.manual_allocation_targets) != len(req.trajectories):
             raise RuntimeError('The number of manual allocation targets does not match the number of trajectories')
 
         current_namespaces = self.__get_current_vehicle_namespaces()

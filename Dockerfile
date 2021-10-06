@@ -8,7 +8,7 @@ RUN apt-get update \
         python-numpy \
     && rm -rf /var/lib/apt/lists/*
 
-RUN cd /ros_ws/src && git clone https://github.com/mhl787156/starling_simple_offboard.git
+RUN mkdir -p /ros_ws/src && cd /ros_ws/src && git clone https://github.com/mhl787156/starling_simple_offboard.git
 
 COPY starling_allocator /ros_ws/src/starling_allocator
 COPY starling_allocator_msgs /ros_ws/src/starling_allocator_msgs

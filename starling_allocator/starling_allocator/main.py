@@ -9,7 +9,7 @@ from rclpy.executors import MultiThreadedExecutor
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.qos import qos_profile_system_default
 
-# from starling_allocator_msgs.msg import Allocation
+from starling_allocator_msgs.msg import Allocation
 from starling_allocator_msgs.srv import AllocateTrajectories
 
 from simple_offboard_msgs.srv import SubmitTrajectory
@@ -56,7 +56,7 @@ class Allocator(Node):
 
         # Set Defaults
         if not req.interpolation_method:
-           req.interpolation_method = 'cubic'
+           req.interpolation_method = 'linear'
         if not req.auto_arm:
             req.auto_arm = True
         if not req.auto_takeoff:
@@ -98,7 +98,7 @@ class Allocator(Node):
             all.trajectory_index = traj_idx
             all.trajectory = traj
             res.allocation.append(all)
-        self.get_logger().info(f"Final Allocation from request is {res.allocation}")
+        # self.get_logger().info(f"Final Allocation from request is {res.allocation}")
         return res
 
     def create_namespace_trajectory_mapping_manual(self, req, traj_tuple):
@@ -124,6 +124,10 @@ class Allocator(Node):
     def create_namespace_trajectory_mapping_nearest(self, req, traj_tuple):
         current_namespaces = self.__get_current_vehicle_namespaces()
         self.current_locations = {cn: None for cn in current_namespaces}
+
+        if len(traj_tuple[0][1].points[0].positions) == 0:
+            self.get_logger().info("No positions found in trajectory, cannot assign by nearest, assigning by order")
+            return dict(zip(current_namespaces, traj_tuple))
 
         current_namespace_pose_subs = [
             self.create_subscription(PoseStamped, f'{cn}/mavros/local_position/pose',
@@ -169,10 +173,11 @@ class Allocator(Node):
             cli = self.create_client(SubmitTrajectory, srv_name)
             sreq = SubmitTrajectory.Request()
             sreq.trajectory = traj
-            sreq.type = traj_type
+            sreq.type = 'position' if traj_type in ['position', 'velocity'] else 'attitude'
             sreq.interpolation_method = req.interpolation_method
             sreq.auto_arm = req.auto_arm
             sreq.auto_takeoff = req.auto_takeoff
+            sreq.frame_id = 'map' if traj_type == 'position' else f'{name}/body'
 
             while not cli.wait_for_service(timeout_sec=1.0):
                 self.get_logger().info(f'service "{srv_name}" not available, waiting again...')

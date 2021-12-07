@@ -179,8 +179,10 @@ class Allocator(Node):
             sreq.auto_takeoff = req.auto_takeoff
             sreq.frame_id = 'map' if traj_type == 'position' else f'{name}/body'
 
-            while not cli.wait_for_service(timeout_sec=1.0):
-                self.get_logger().info(f'service "{srv_name}" not available, waiting again...')
+            if not cli.wait_for_service(timeout_sec=10.0):
+                self.get_logger().info(f'Service "{srv_name}" timed out not available. Request to vehicle {name} failed.')
+                continue
+
             cli.call_async(sreq)
             self.get_logger().info(f"Sent trajectory request to vehicle '{name}' via {srv_name}")
             self.get_logger().debug(f"Req: {sreq}")

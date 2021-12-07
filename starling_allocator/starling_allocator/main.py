@@ -138,7 +138,7 @@ class Allocator(Node):
         self.get_logger().info(f"Polling for 10 seconds")
         rate = self.create_rate(10)
         start_time = self.get_clock().now()
-        while any([cv == None for cv in self.current_locations.values()]) or self.get_clock().now() - start_time > 10.0:
+        while any([cv == None for cv in self.current_locations.values()]) and self.get_clock().now() - start_time < 10.0:
             self.get_logger().info(f"Waiting for pose information: {self.current_locations}")
             rate.sleep()
         

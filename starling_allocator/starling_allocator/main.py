@@ -135,10 +135,14 @@ class Allocator(Node):
                                      qos_profile=10, callback_group=self.callback_group)
             for cn in current_namespaces]
 
+        self.get_logger().info(f"Polling for 10 seconds")
         rate = self.create_rate(10)
-        while any([cv == None for cv in self.current_locations.values()]):
+        start_time = self.get_clock().now()
+        while any([cv == None for cv in self.current_locations.values()]) or self.get_clock().now() - start_time > 10.0:
             self.get_logger().info(f"Waiting for pose information: {self.current_locations}")
             rate.sleep()
+        
+        self.current_locations = {cn: cv for cn, cv in self.current_locations.items() if cv != None}
         self.get_logger().info(f"Got local positions: {self.current_locations}")
 
         # Close the subscribers once current locations have been accessed

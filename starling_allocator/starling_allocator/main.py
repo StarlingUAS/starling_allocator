@@ -24,16 +24,15 @@ class Allocator(Node):
     def __init__(self):
         super().__init__('starling_allocator')
         self.callback_group = ReentrantCallbackGroup()
-        self.srv_callback_group = ReentrantCallbackGroup()
-        self.submit_trajectories_srv = self.create_service(AllocateTrajectories, 'submit_trajectories', 
-            self.submit_trajectories_cb, callback_group=self.srv_callback_group)
+        # self.srv_callback_group = ReentrantCallbackGroup()
+        self.submit_trajectories_srv = self.create_service(AllocateTrajectories, 'submit_trajectories', self.submit_trajectories_cb)
         self.method_mapping = {
             'nearest': self.create_namespace_trajectory_mapping_nearest,
             'random': self.create_namespace_trajectory_mapping_random,
             'manual': self.create_namespace_trajectory_mapping_manual,
         }
         self.current_locations = {}
-        
+
 
         self.allocation_pub = self.create_publisher(Allocations, 'current_allocated_trajectory', 10)
         self.current_allocation = Allocations()
@@ -148,7 +147,7 @@ class Allocator(Node):
 
         self.get_logger().info(f"Polling for 2 seconds")
         rate = self.create_rate(0.5)
-        rate.sleep() 
+        rate.sleep()
         rate.destroy()
 
         self.current_locations = {cn: cv for cn, cv in self.current_locations.items() if cv != None}
@@ -161,15 +160,27 @@ class Allocator(Node):
         traj_locations = {k: t.points[0].positions[:3] for (k, t, _) in traj_tuple}
 
         assigned = {}
+        assigned_traj_idx = set()
         for cn, cl in self.current_locations.items():
+            self.get_logger().info(f"Assigning {cn}")
             cassin = None
             min_dist = 100000000000
-            for k, position in [(k, p) for (k, p) in traj_locations.items() if k not in assigned.keys()]:
+            for k, position in traj_locations.items():
+                if k in assigned_traj_idx:
+                    self.get_logger().info(f"{k} already assigned")
+                    continue
                 dist = np.linalg.norm(np.array(cl) - np.array(position))
+                self.get_logger().info(f"Checking traj {k} at dist {dist} from vehicle position {cl} to init traj {position}")
                 if dist < min_dist:
                     min_dist = dist
                     cassin = k
+                    self.get_logger().info(f"Maybe Assinging traj {k} to {cn}")
+            self.get_logger().info(f"Assigned vehicle {cn} to traj {cassin}")
             assigned[cn] = traj_tuple[cassin]
+            assigned_traj_idx.add(cassin)
+
+            blah = {cn: ttp[0] for cn, ttp in assigned.items()}
+            self.get_logger().info(f"Assigned: {blah}")
 
         return assigned
 

@@ -27,6 +27,7 @@ find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/Allocation.msg"
+  "msg/Allocations.msg"
   "srv/AllocateTrajectories.srv"
   DEPENDENCIES trajectory_msgs
 )

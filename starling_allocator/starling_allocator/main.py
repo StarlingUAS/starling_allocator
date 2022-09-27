@@ -9,7 +9,7 @@ from rclpy.executors import MultiThreadedExecutor
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.qos import qos_profile_system_default
 
-from starling_allocator_msgs.msg import Allocation
+from starling_allocator_msgs.msg import Allocation, Allocations
 from starling_allocator_msgs.srv import AllocateTrajectories
 
 from simple_offboard_msgs.srv import SubmitTrajectory
@@ -23,15 +23,25 @@ class Allocator(Node):
 
     def __init__(self):
         super().__init__('starling_allocator')
-        self.submit_trajectories_srv = self.create_service(AllocateTrajectories, 'submit_trajectories', self.submit_trajectories_cb)
+        self.callback_group = ReentrantCallbackGroup()
+        self.srv_callback_group = ReentrantCallbackGroup()
+        self.submit_trajectories_srv = self.create_service(AllocateTrajectories, 'submit_trajectories', 
+            self.submit_trajectories_cb, callback_group=self.srv_callback_group)
         self.method_mapping = {
             'nearest': self.create_namespace_trajectory_mapping_nearest,
             'random': self.create_namespace_trajectory_mapping_random,
             'manual': self.create_namespace_trajectory_mapping_manual,
         }
         self.current_locations = {}
-        self.callback_group = ReentrantCallbackGroup()
+        
+
+        self.allocation_pub = self.create_publisher(Allocations, 'current_allocated_trajectory', 10)
+        self.current_allocation = Allocations()
+        self.create_timer(5, self.publish_allocation)
+
         self.get_logger().info("Initialised")
+    def publish_allocation(self):
+        self.allocation_pub.publish(self.current_allocation)
 
     def submit_trajectories_cb(self, req, res):
         self.get_logger().info("Trajectory Submit Request Received")
@@ -99,6 +109,7 @@ class Allocator(Node):
             all.trajectory = traj
             res.allocation.append(all)
         # self.get_logger().info(f"Final Allocation from request is {res.allocation}")
+        self.current_allocation.allocation = res.allocation
         return res
 
     def create_namespace_trajectory_mapping_manual(self, req, traj_tuple):
@@ -135,13 +146,11 @@ class Allocator(Node):
                                      qos_profile=10, callback_group=self.callback_group)
             for cn in current_namespaces]
 
-        self.get_logger().info(f"Polling for 10 seconds")
-        rate = self.create_rate(10)
-        start_time = self.get_clock().now()
-        while any([cv == None for cv in self.current_locations.values()]) and self.get_clock().now() - start_time < 10.0:
-            self.get_logger().info(f"Waiting for pose information: {self.current_locations}")
-            rate.sleep()
-        
+        self.get_logger().info(f"Polling for 2 seconds")
+        rate = self.create_rate(0.5)
+        rate.sleep() 
+        rate.destroy()
+
         self.current_locations = {cn: cv for cn, cv in self.current_locations.items() if cv != None}
         self.get_logger().info(f"Got local positions: {self.current_locations}")
 

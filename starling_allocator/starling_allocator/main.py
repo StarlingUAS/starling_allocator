@@ -175,6 +175,9 @@ class Allocator(Node):
                     min_dist = dist
                     cassin = k
                     self.get_logger().info(f"Maybe Assinging traj {k} to {cn}")
+            if cassin is None:
+                self.get_logger().warn("There are more vehicles than trajectories, all trajectories assigned")
+                continue
             self.get_logger().info(f"Assigned vehicle {cn} to traj {cassin}")
             assigned[cn] = traj_tuple[cassin]
             assigned_traj_idx.add(cassin)

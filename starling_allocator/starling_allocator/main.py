@@ -201,7 +201,7 @@ class Allocator(Node):
                 
                 # X-Y plane distance 
                 dist = np.linalg.norm(np.array(cl)[:2] - np.array(position)[:2])
-                self.get_logger().info(f"Checking traj {k} at dist {dist} from vehicle position {cl} to init traj {position}")
+                self.get_logger().info(f"Checking traj {k} at dist {dist} from {cn} position {cl} to init traj {position}")
                 if dist < min_dist:
                     min_dist = dist
                     cassin = cn

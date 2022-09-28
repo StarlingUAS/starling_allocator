@@ -160,30 +160,64 @@ class Allocator(Node):
         traj_locations = {k: t.points[0].positions[:3] for (k, t, _) in traj_tuple}
 
         assigned = {}
-        assigned_traj_idx = set()
-        for cn, cl in self.current_locations.items():
-            self.get_logger().info(f"Assigning {cn}")
+        # assigned_traj_idx = set()
+        # for cn, cl in self.current_locations.items():
+        #     self.get_logger().info(f"Assigning {cn}")
+        #     cassin = None
+        #     min_dist = 100000000000
+        #     for k, position in traj_locations.items():
+        #         if k in assigned_traj_idx:
+        #             self.get_logger().info(f"{k} already assigned")
+        #             continue
+        #         dist = np.linalg.norm(np.array(cl) - np.array(position))
+        #         self.get_logger().info(f"Checking traj {k} at dist {dist} from vehicle position {cl} to init traj {position}")
+        #         if dist < min_dist:
+        #             min_dist = dist
+        #             cassin = k
+        #             self.get_logger().info(f"Maybe Assinging traj {k} to {cn}")
+        #     if cassin is None:
+        #         self.get_logger().warn("There are more vehicles than trajectories, all trajectories assigned")
+        #         continue
+        #     self.get_logger().info(f"Assigned vehicle {cn} to traj {cassin}")
+        #     assigned[cn] = traj_tuple[cassin]
+        #     assigned_traj_idx.add(cassin)
+
+        #     blah = {cn: ttp[0] for cn, ttp in assigned.items()}
+        #     self.get_logger().info(f"Assigned: {blah}")
+
+        assigned_vehicles = set()
+        # Trajectory id (k) and traj start location (position)
+        for k, position in traj_locations.items(): 
+
             cassin = None
             min_dist = 100000000000
-            for k, position in traj_locations.items():
-                if k in assigned_traj_idx:
-                    self.get_logger().info(f"{k} already assigned")
+
+            # Vehicle name (cn) and vehicle location (cl)
+            for cn, cl in self.current_locations.items():
+
+                if cn in assigned_vehicles:
+                    self.get_logger().info(f"{cn} already assigned")
                     continue
-                dist = np.linalg.norm(np.array(cl) - np.array(position))
+                
+                # X-Y plane distance 
+                dist = np.linalg.norm(np.array(cl)[:2] - np.array(position)[:2])
                 self.get_logger().info(f"Checking traj {k} at dist {dist} from vehicle position {cl} to init traj {position}")
                 if dist < min_dist:
                     min_dist = dist
-                    cassin = k
+                    cassin = cn
                     self.get_logger().info(f"Maybe Assinging traj {k} to {cn}")
+                
             if cassin is None:
-                self.get_logger().warn("There are more vehicles than trajectories, all trajectories assigned")
+                self.get_logger().warn("There are more trajectories than vehicles, all vehicles assigned")
                 continue
-            self.get_logger().info(f"Assigned vehicle {cn} to traj {cassin}")
-            assigned[cn] = traj_tuple[cassin]
-            assigned_traj_idx.add(cassin)
+                
+            self.get_logger().info(f"Assigned trajetory {k} to vehicle {cassin}")
+            assigned[cassin] = traj_tuple[k]
+            assigned_vehicles.add(cassin)
 
             blah = {cn: ttp[0] for cn, ttp in assigned.items()}
             self.get_logger().info(f"Assigned: {blah}")
+
 
         return assigned
 

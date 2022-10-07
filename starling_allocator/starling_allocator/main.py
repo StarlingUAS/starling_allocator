@@ -145,8 +145,8 @@ class Allocator(Node):
                                      qos_profile=10, callback_group=self.callback_group)
             for cn in current_namespaces]
 
-        self.get_logger().info(f"Polling for 2 seconds")
-        rate = self.create_rate(0.5)
+        self.get_logger().info(f"Polling for 5 seconds")
+        rate = self.create_rate(0.2)
         rate.sleep()
         rate.destroy()
 
